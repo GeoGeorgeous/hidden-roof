@@ -496,9 +496,9 @@ html:not(.game) .about .hero {
   align-items: flex-start;
   letter-spacing: 0.04em;
 }
-/* The picture's empty edge left out, so the cap lines up with its name. */
 .about .caps img {
-  margin: -8px 0 -6px -20px;
+  width: 100%;
+  height: auto;
 }
 .about :is(.facts, .tools) > div {
   display: flex;

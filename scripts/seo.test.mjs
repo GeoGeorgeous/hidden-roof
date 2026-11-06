@@ -81,7 +81,7 @@ for (const [, tool, shape] of shapes.matchAll(/(\w+): '([^']+)'/g)) assert.ok(ab
 const caps = [...read('src/config.ts').matchAll(/^  (\w+): \{ name: '([^']+)', spread/gm)];
 assert.ok(caps.length, 'src/config.ts: no CAPS');
 for (const [, id, name] of caps) {
-  assert.ok(about.includes(`<img src="/about/caps/${id}.webp" width="96" height="96" alt="" loading="lazy" />${name}</dt>`), `index.html: the ${name} cap`);
+  assert.ok(about.includes(`<img src="/about/caps/${id}.webp" width="320" height="220" alt="" loading="lazy" />${name}</dt>`), `index.html: the ${name} cap`);
   assert.ok(read(`public/about/caps/${id}.webp`).length, `public/about/caps/${id}.webp`);
 }
 

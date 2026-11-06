@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 387
+The one list of what's left. Counter for new ids: next: 388
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -209,6 +209,7 @@ Shipped since the last release; the release commit empties this list.
 42. IDEA [BL-066]: A camera mode for trailers and cinematics
 43. [TASK-384]: The page about the game: Multiplayer is Solo & Multiplayer with all three modes
 44. [TASK-385]: The page about the game: Painting says what 1.7.0 does, with How to play in it as Tools and a new Caps part, each cap with its picture
+45. [TASK-387]: The page about the game: each cap's picture is its pickup, with its ring and tag as in the game
 
 ## Discarder
 
