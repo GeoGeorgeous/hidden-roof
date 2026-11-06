@@ -486,9 +486,33 @@ html:not(.game) .about .hero {
   gap: 8px;
   letter-spacing: 0.04em;
 }
-.about .caps img {
+.about :is(.caps, .kit) img {
   max-width: 100%;
   height: auto;
+}
+.about .caps img {
+  width: 192px;
+}
+.about .kit img {
+  width: 160px;
+}
+/* The found tools: each picture over its name and what it's for. */
+.about .kit {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+}
+.about .kit > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.about .kit h4 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--paper);
 }
 .about :is(.facts, .tools) > div {
   display: flex;
@@ -576,7 +600,7 @@ html:not(.game) .about .hero {
   font: 400 26px / 1.1 var(--display);
   letter-spacing: 0.02em;
 }
-.about #painting :is(dl, ul) {
+.about #painting :is(dl, ul, .kit) {
   margin-top: 8px;
 }
 .about .prose h3 {
@@ -790,6 +814,9 @@ html:not(.game) .about .hero {
   .about .tools {
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
+  }
+  .about .kit {
+    grid-template-columns: 1fr;
   }
   .about .faq-group {
     grid-template-columns: 1fr;

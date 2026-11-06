@@ -72,17 +72,13 @@ for (const [file, text] of [['index.html <div class="about">', about], ['public/
   const found = mine(text);
   assert.deepEqual([...new Set(found)].sort(), [...project].sort(), `${file}: the project links`);
 }
-// The tools' icons on the page are the server list's (src/net/tool-icons.ts), shape for shape.
-const shapes = read('src/net/tool-icons.ts').match(/const SHAPES[^{]*\{([\s\S]*?)\n\};/)?.[1];
-assert.ok(shapes, 'src/net/tool-icons.ts: no SHAPES');
-for (const [, tool, shape] of shapes.matchAll(/(\w+): '([^']+)'/g)) assert.ok(about.includes(`data-tool="${tool}">${shape}</svg>`), `index.html: the ${tool} icon is src/net/tool-icons.ts's`);
-
-// Every cap is on the page, by its name and with its picture (scripts/cap-pictures.mjs).
+// Every cap and found tool is on the page with its picture (scripts/pickup-pictures.mjs), a cap by its name too.
 const caps = [...read('src/config.ts').matchAll(/^  (\w+): \{ name: '([^']+)', spread/gm)];
 assert.ok(caps.length, 'src/config.ts: no CAPS');
-for (const [, id, name] of caps) {
-  assert.ok(about.includes(`<img src="/about/caps/${id}.webp" width="240" height="160" alt="" loading="lazy" />${name}</dt>`), `index.html: the ${name} cap`);
-  assert.ok(read(`public/about/caps/${id}.webp`).length, `public/about/caps/${id}.webp`);
-}
+for (const [, id, name] of caps) assert.ok(about.includes(`<img src="/about/pickups/${id}.webp" width="240" height="160" alt="" loading="lazy" />${name}</dt>`), `index.html: the ${name} cap`);
+const tools = read('src/inventory/tool.ts').match(/SLOTS[^=]*= \[([^\]]+)\]/)?.[1].match(/\w+/g)?.filter((t) => t !== 'can');
+assert.ok(tools?.length, 'src/inventory/tool.ts: no SLOTS');
+for (const id of tools) assert.ok(about.includes(`<img src="/about/pickups/${id}.webp" width="200" height="200"`), `index.html: the ${id}`);
+for (const id of [...caps.map((c) => c[1]), ...tools]) assert.ok(read(`public/about/pickups/${id}.webp`).length, `public/about/pickups/${id}.webp`);
 
-console.log('seo: ok (descriptions, url, structured data, the page about the game, the definition, project links, tool icons and caps agree)');
+console.log('seo: ok (descriptions, url, structured data, the page about the game, the definition, project links, caps and tools agree)');

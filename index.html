@@ -192,25 +192,40 @@
             </ul>
             <h3>Caps</h3>
             <p>Six caps to choose from, each with its own feel, from fine details to big fills. You start with BANANA and find the rest around the roof.</p>
-            <!-- Every cap, its picture its pickup in the game (scripts/cap-pictures.mjs; scripts/seo.test.mjs checks they're all here). -->
+            <!-- Every cap, its picture its pickup in the game (scripts/pickup-pictures.mjs; scripts/seo.test.mjs checks they're all here). -->
             <dl class="tools caps">
-              <div><dt><img src="/about/caps/needle.webp" width="240" height="160" alt="" loading="lazy" />NEEDLE</dt><dd>Ultra-fine lines for sharp details and highlights</dd></div>
-              <div><dt><img src="/about/caps/skinny.webp" width="240" height="160" alt="" loading="lazy" />SKINNY</dt><dd>Clean tags and crisp outlines</dd></div>
-              <div><dt><img src="/about/caps/standard.webp" width="240" height="160" alt="" loading="lazy" />BANANA</dt><dd>A versatile all-rounder for everyday painting</dd></div>
-              <div><dt><img src="/about/caps/soft.webp" width="240" height="160" alt="" loading="lazy" />BLUE DOT</dt><dd>Soft edges for smooth blends and fades</dd></div>
-              <div><dt><img src="/about/caps/fat.webp" width="240" height="160" alt="" loading="lazy" />NY FAT</dt><dd>Wide lines for throw-ups and quick fills</dd></div>
-              <div><dt><img src="/about/caps/spray.webp" width="240" height="160" alt="" loading="lazy" />ASTRO FAT</dt><dd>Massive coverage for big fills and backgrounds</dd></div>
+              <div><dt><img src="/about/pickups/needle.webp" width="240" height="160" alt="" loading="lazy" />NEEDLE</dt><dd>Ultra-fine lines for sharp details and highlights</dd></div>
+              <div><dt><img src="/about/pickups/skinny.webp" width="240" height="160" alt="" loading="lazy" />SKINNY</dt><dd>Clean tags and crisp outlines</dd></div>
+              <div><dt><img src="/about/pickups/standard.webp" width="240" height="160" alt="" loading="lazy" />BANANA</dt><dd>A versatile all-rounder for everyday painting</dd></div>
+              <div><dt><img src="/about/pickups/soft.webp" width="240" height="160" alt="" loading="lazy" />BLUE DOT</dt><dd>Soft edges for smooth blends and fades</dd></div>
+              <div><dt><img src="/about/pickups/fat.webp" width="240" height="160" alt="" loading="lazy" />NY FAT</dt><dd>Wide lines for throw-ups and quick fills</dd></div>
+              <div><dt><img src="/about/pickups/spray.webp" width="240" height="160" alt="" loading="lazy" />ASTRO FAT</dt><dd>Massive coverage for big fills and backgrounds</dd></div>
             </dl>
             <h3>Tools</h3>
             <p>You start with a spray can and black paint. Twelve more colors, the caps, and four extra tools are hidden around the roof. Paint never runs out.</p>
-            <!-- Every tool, with its icon from the server list (src/net/tool-icons.ts; scripts/seo.test.mjs checks they're the same). -->
-            <dl class="tools">
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="can"><rect x="4.5" y="5.5" width="6" height="8.5" rx="1.5"/><path d="M6 5.5V3.5h3v2"/><path d="M10.5 3.2l2-.8M10.5 4.4l2 .2"/></svg>Spray can</dt><dd>Tags, fills and fades</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="marker"><path d="M3 13l.8-2.8 6.6-6.6 2 2-6.6 6.6z"/><path d="M9.2 4.8l2 2"/></svg>Marker</dt><dd>Crisp lines and letters</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="roller"><rect x="2.5" y="2.5" width="9" height="3.5" rx="1"/><path d="M11.5 4.2h1.7v3.3H7.5v2"/><path d="M7.5 9.5v4"/></svg>Roller</dt><dd>Large areas, fast</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="sponge"><rect x="2" y="6" width="9.5" height="7" rx="2.5"/><circle cx="4.8" cy="8.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="10.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="8.4" cy="8.2" r="0.5" fill="currentColor" stroke="none"/><path d="M13 2.2c.9 1.2 1.4 2 1.4 2.6a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.4 1.4-2.6z"/></svg>Sponge</dt><dd>Scrapes paint off</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="ladder"><path d="M5 2v12M11 2v12M5 5h6M5 8h6M5 11h6"/></svg>Stepladder</dt><dd>Reaches high walls</dd></div>
-            </dl>
+            <!-- Every found tool, its picture its pickup in the game (scripts/pickup-pictures.mjs; scripts/seo.test.mjs checks they're all here). -->
+            <div class="kit">
+              <div>
+                <img src="/about/pickups/marker.webp" width="200" height="200" alt="" loading="lazy" />
+                <h4>Marker</h4>
+                <p>A square nib for crisp lines and letters, right where you aim, with none of the can&rsquo;s softness. Q and E change the nib from as thin as it gets to 10 cm. Use it for outlines, small tags, and sharp details over a spray fill.</p>
+              </div>
+              <div>
+                <img src="/about/pickups/roller.webp" width="200" height="200" alt="" loading="lazy" />
+                <h4>Roller</h4>
+                <p>Solid bands of paint, fast, on a short pole that reaches 5 m. Roll up and down for the full width: sideways it only drags along its own length, like a real roller. Q and E set the width from 20 to 80 cm. Use it for backgrounds and big fills, and watch for runs: a loaded roller drips easily.</p>
+              </div>
+              <div>
+                <img src="/about/pickups/sponge.webp" width="200" height="200" alt="" loading="lazy" />
+                <h4>Sponge</h4>
+                <p>Scrapes paint off, whatever laid it. One pass fades the paint, and scrubbing back and forth cleans it. Q and E set its size from 4 to 60 cm, and holding Crouch scrubs the floor. Use it to fix a mistake, clean up an edge, or start over.</p>
+              </div>
+              <div>
+                <img src="/about/pickups/ladder.webp" width="200" height="200" alt="" loading="lazy" />
+                <h4>Stepladder</h4>
+                <p>Puts high walls within reach. Put it down with the left mouse button, turn it with the wheel, then walk into it or hold Jump to climb. You have one, so putting it down again moves it, and in a session others can climb it too.</p>
+              </div>
+            </div>
           </section>
 
           <section id="gallery">

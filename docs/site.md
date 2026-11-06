@@ -30,10 +30,10 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
   changes, change both.
 - Order: the hero, the fact cards, How to start playing (where it shows), About (the owner's text on what the game is,
   the owner's word to players under P.S.; its "legal walls" is the owner's own, saying the game isn't one), then the
-  rest. Painting has what the can does, then Caps and Tools under their own titles: every cap with its picture
-  (`public/about/caps/*.webp`: its pickup with its tag and a light ring, no glow, by `npm run cap-pictures`, when a cap or the pickups' look changes), every
-  tool with the server list's icon (`src/net/tool-icons.ts`), copied as markup. `scripts/seo.test.mjs` checks both. Caps and Tools sit on the fact cards' three columns; spacing
-  in these sections is 8, 16, 24, 32 or 48 px.
+  rest. Painting has what the can does, then Caps and Tools under their own titles: every cap and found tool with its
+  pickup for a picture (`public/about/pickups/*.webp`, with its tag and a light ring, no glow, by
+  `npm run pickup-pictures`, when one's look changes); `scripts/seo.test.mjs` checks they're all there. Caps sit on the
+  fact cards' three columns, the tools on two; spacing in these sections is 8, 16, 24, 32 or 48 px.
 - The hero's loop (`public/about/roof.mp4`, `roof-portrait.mp4`) starts after the page and its fonts have loaded
   (`src/boot.ts`), so it never competes with them. Filmed from the title view on a real GPU, 1920x1080 and 1080x1920 (the
   canvas only, so no menu). Encode as H.264 High, Level 4.0 or lower (the Level 6.2 files didn't play on an iPhone), 30 fps,
