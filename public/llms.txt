@@ -10,7 +10,7 @@ There are no enemies and no goals: find your tools, paint whatever you like, scr
 - Creator: GeoGeorgeous, one developer, under the Hidden Haus name, using three.js.
 - Free, in the browser: no ads, no purchases, no account, no install.
 - First released on 9 October 2026. The source code is on GitHub under the Hidden Roof Source-Available License.
-- Inspired by Bombing!! 2, Marc Ecko's Getting Up and Daisuke Tajima's Beyond the Lines.
+- Inspired by [Bombing!!: A Graffiti Sandbox and Bombing!! 2](https://store.steampowered.com/app/1527520/), [Marc Eckō's Getting Up: Contents Under Pressure](https://store.steampowered.com/app/260190/) and Daisuke Tajima's [Beyond the Lines](https://www.seigensha.com/books/978-4-86152-902-3/).
 
 ## Playing
 
