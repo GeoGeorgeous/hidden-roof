@@ -1,5 +1,5 @@
-// The caps on the page about the game: each cap's pickup as the game draws it, its model (bigger, over its glow), ring and glow
-// on the black of the page, with its tag by the game's own PickupLabels, as public/about/caps/<id>.webp. BANANA is every player's
+// The caps on the page about the game: each cap's pickup as the game draws it, its model (bigger) and ring (light, no glow: on
+// the black of the page a dark ring is lost), with its tag by the game's own PickupLabels, as public/about/caps/<id>.webp. BANANA is every player's
 // from the start, so it says CAP, not NEW CAP. Run it when a cap or the pickups' look changes: npm run cap-pictures
 import fs from 'node:fs';
 import { openTestBrowser } from './test-browser.mjs';
@@ -16,7 +16,7 @@ await page.goto(test.url.split('?')[0]);
 // The page's own modules, from the Vite server.
 const modules = ['/node_modules/.vite/deps/three.js', '/src/pickups/visuals.ts', '/src/pickups/labels.ts', '/src/config.ts', '/src/style.css'];
 const caps = await page.evaluate(async ({ modules, width, height, bigger }) => {
-  const [THREE, { itemModel, halo, setRing, glow, setGlow }, { PickupLabels }, { PICKUP, CAP_ORDER }] = await Promise.all(modules.map((m) => import(m)));
+  const [THREE, { itemModel, halo }, { PickupLabels }, { PICKUP, INK, CAP_ORDER }] = await Promise.all(modules.map((m) => import(m)));
   document.documentElement.classList.add('game');
   document.body.replaceChildren();
   const canvas = document.createElement('canvas');
@@ -41,18 +41,14 @@ const caps = await page.evaluate(async ({ modules, width, height, bigger }) => {
     pose.position.y = PICKUP.hover;
     // The nozzle in sight, in front of the cap.
     pose.rotation.y = Math.PI + 0.6;
-    const light = glow(kind);
-    light.light.position.y = PICKUP.hover;
-    light.light.scale.setScalar(PICKUP.glow.size);
-    setGlow(light, PICKUP.glow.strength);
     const ring = halo(kind);
     ring.position.y = PICKUP.hover;
     ring.scale.setScalar(PICKUP.ring.size);
-    setRing(ring, kind);
-    // The cap over its glow, in its own color: the game's glow washes it out at this size.
+    ring.material.color.set(INK.paper);
+    // The cap over its ring, whole.
     const cap = new THREE.Scene();
     cap.add(pose);
-    scene.add(light.light, ring);
+    scene.add(ring);
     renderer.autoClear = true;
     renderer.render(scene, camera);
     renderer.autoClear = false;
