@@ -22,6 +22,8 @@ export class Audio {
   /** Each recording asked for, settling when it plays (true) or can't (false). */
   readonly recordings = new Map<string, Promise<boolean>>();
   private indoors = false;
+  /** The city is here, or has had its time: the other recordings may start. */
+  private cityDone = false;
   private thunders: AudioBuffer[] = [];
   private lastThunder = 0;
   private rainGain!: GainNode;
@@ -37,7 +39,7 @@ export class Audio {
       void this.ctx.resume();
       return;
     }
-    const ctx = new AudioContext();
+    const ctx = new AudioContext({ sampleRate: AUDIO.sampleRate });
     this.ctx = ctx;
     this.master = ctx.createGain();
     this.master.gain.value = AUDIO.masterGain;
@@ -79,6 +81,8 @@ export class Audio {
     this.cityTone.frequency.value = OPEN_AIR;
     this.ambGain.connect(this.cityTone).connect(this.master);
     this.play(CITY, this.ambGain);
+    const waited = new Promise((done) => setTimeout(done, AUDIO.cityFirst * 1000));
+    void Promise.race([this.recordings.get(CITY), waited]).then(() => (this.cityDone = true));
 
     // Rain: its recordings join the first time it rains (update()).
     const layer = () => {
@@ -128,7 +132,7 @@ export class Audio {
     const fade = AUDIO.indoorFade;
     this.ambGain.gain.setTargetAtTime(AUDIO.ambienceGain * (this.indoors ? AUDIO.indoorCity : 1), t, fade);
     this.cityTone.frequency.setTargetAtTime(this.indoors ? AUDIO.indoorTone : OPEN_AIR, t, fade);
-    if (ATMOS.rain) {
+    if (ATMOS.rain && this.cityDone) {
       this.play(RAIN, this.rainGain);
       this.play(STORM, this.stormGain);
       for (const file of THUNDERS) this.keep(file);

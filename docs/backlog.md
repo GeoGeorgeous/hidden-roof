@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 397
+The one list of what's left. Counter for new ids: next: 399
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -217,6 +217,8 @@ Shipped since the last release; the release commit empties this list.
 54. [CCTV-373]: The traffic funnel shows who can play: each page load says what it came to (game, no mouse, small window, no WebGL, a file that failed, the start script cached) in a request for `/mark.txt`, counted once a visitor as `boot` in `/stats/traffic`, its days and months (`docs/admin-api.md`); the privacy page says so. The cctv page's Audience card is on it (cctv PR #17)
 55. [TASK-395]: CI's check may take 30 minutes, was 20: it takes 12 to over 20 by the runner, and runs were cut off in golden, its last step
 56. [BUGS-396]: The page about the game at 320 px wide: its lists ran past the screen and their text was cut at the right edge; they fit now
+57. [PERF-397]: Recordings held four times the memory on an output set to 192 kHz (773 MB, 386 at 96 kHz): the sound runs at 48 kHz on every device
+58. [BUGS-398]: On a slow link the city came after all the rain's recordings, about a minute of no sound at 1 Mbit/s: it loads first now, the others after it or `AUDIO.cityFirst` later
 
 ## Discarder
 
