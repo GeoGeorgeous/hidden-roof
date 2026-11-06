@@ -131,7 +131,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. [TASK-201]: The game on itch.io and CrazyGames, played from roof.hidden.haus in their iframe: itch as an HTML upload whose index.html is that iframe (a link-only page is never indexed), CrazyGames' Basic Launch from our own domain (no SDK); the CSP's `frame-ancestors` (now `'none'`, in `vite.config.ts` and Caddy on the host) opened to itch's and CrazyGames' domains; pointer lock, fullscreen and the window size checked inside both; the AI disclosure answered (docs/ideas/web-portals.md) @1.7.1
 2. [IDEA-338]: The server limits a stamp's reach (radius × stretch) when it takes an op: a modified client's huge slanted stamps search ~80 times the seam cells of a round one
-3. [TASK-342]: With 1.7.0 the admin's statistics start over: no players yet, and paint counts change scale; the owner's decision. All but traffic goes, on staging traffic too, a step for devops (docs/deploy.md, section 1) @1.7.0
+3. [TASK-342]: With 1.7.0 the admin's statistics start over: no players yet, and paint counts change scale; the owner's decision. All but traffic goes, a step for devops (docs/deploy.md, section 1); staging's done, traffic too @1.7.0
 4. [TASK-394]: With 1.7.0's deploy to production, `www.roof.hidden.haus` redirects to the site (its HTTPS fails today) and IndexNow gets its first ping (Bing and Yandex don't know the site yet; the step needs a container, the host has no Node): steps for devops (docs/deploy.md, section 1) @1.7.0
 
 ## CCTV
