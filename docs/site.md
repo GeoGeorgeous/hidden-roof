@@ -26,6 +26,8 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
 - The FAQ: each question phrased as players ask it, each answer starting with the direct answer. Questions sit in
   groups (Playing, Painting, Multiplayer, Performance, The game), each a `<details>` that opens in place: the answers
   stay in the markup for crawlers. A new question goes in its group.
+  Painting says how the paint system works, for search and LLMs, as `public/llms.txt`'s Painting does: when paint
+  changes, change both.
 - Order: the hero, the fact cards, How to start playing (where it shows), About (the owner's text on what the game is,
   the owner's word to players under P.S.; its "legal walls" is the owner's own, saying the game isn't one), then the
   rest. Painting has what the can does, then Caps and Tools under their own titles: every cap with its picture
