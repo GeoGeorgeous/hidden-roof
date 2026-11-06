@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 391
+The one list of what's left. Counter for new ids: next: 392
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -213,6 +213,7 @@ Shipped since the last release; the release commit empties this list.
 46. [TASK-388]: The FAQ's Painting and `llms.txt` say how paint works in 1.7.0, for search and LLMs
 47. [TASK-389]: The FAQ's sound answer says what 1.7.0 has, and a question on the can's hiss following the hand
 48. [TASK-390]: The page about the game: Tools says how the marker, roller, sponge and stepladder work, each with its pickup for a picture
+49. [TASK-391]: `llms.txt` has the page's facts: playing, modes, saving, caps, tools, sound, release and license, under their own titles
 
 ## Discarder
 
