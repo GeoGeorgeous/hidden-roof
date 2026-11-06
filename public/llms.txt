@@ -7,12 +7,26 @@ A first-person game: you climb onto the rooftops of a city drawn in ink, and the
 There are no enemies and no goals: find your tools, paint whatever you like, scrub it off, paint again. Play alone, or bring friends into a multiplayer session and paint the same roof together.
 
 - Play: https://roof.hidden.haus/
-- Creator: GeoGeorgeous
-- Free, in the browser: no account, no install.
-- The spray can paints like a brush: continuous strokes, layered opacity, caps from needle to wide soft, and paint that drips; distance and hand speed change the line as with a real can.
-- Needs a desktop browser with WebGL2, a keyboard and a mouse. Phones and tablets are not supported.
-- Solo, or multiplayer: pick a session from the server list, a public one (up to 40 players) or a private one by its code (up to 4).
-- Inspired by Bombing!!, Marc Ecko's Getting Up and Daisuke Tajima's Beyond the Lines.
+- Creator: GeoGeorgeous, one developer, under the Hidden Haus name, using three.js.
+- Free, in the browser: no ads, no purchases, no account, no install.
+- First released on 9 October 2026. The source code is on GitHub under the Hidden Roof Source-Available License.
+- Inspired by Bombing!! 2, Marc Ecko's Getting Up and Daisuke Tajima's Beyond the Lines.
+
+## Playing
+
+- Needs a desktop or laptop browser with WebGL2, a keyboard, a mouse and a window at least 820×560. Phones, tablets and controllers are not supported.
+- One level: a large rooftop, the same in solo and multiplayer, with new walls, windows, signs and props in updates.
+- Every surface is paintable: brick, glass, metal, doors, staircases, even the floor. If you can reach it, you can paint it.
+- You start with a spray can and black paint. Twelve more colors, five more caps and four more tools are hidden around the roof. Paint never runs out.
+- Every key can be rebound in Settings → Controls. Settings → Graphics has a performance test that says what to change on a slow computer.
+
+## Solo and multiplayer
+
+- Solo: the whole roof to yourself, and the game pauses when you do.
+- Public sessions: open to everyone, up to 40 players. Their paint stays on the server, so the walls fill up over days.
+- Private sessions: up to 4 players, joined by a code. Their paint is lost once the last player leaves.
+- Everyone in a session shares the same walls, and every stroke appears in real time. Other players can paint over or scrape off your work, and the admin may ban repeat offenders.
+- You can download your roof's paint as a file and upload it later for a new session.
 
 ## Painting
 
@@ -21,16 +35,35 @@ There are no enemies and no goals: find your tools, paint whatever you like, scr
 - Hand speed: slow strokes are dense and sharp; fast ones are lighter, wider and softer.
 - Angle: sprayed at an angle, paint stretches along the aim and fades towards the far end.
 - Opacity: hold Run (Shift by default) and scroll, from 5% to 100%, on the can only. The can never loses pressure; shaking it is only an animation.
-- Six caps: NEEDLE (sharp details), SKINNY (tags and outlines), BANANA (the all-rounder every player starts with), BLUE DOT (soft blends and fades), NY FAT (throw-ups and quick fills), ASTRO FAT (big fills and backgrounds). The others are found on the roof.
 - Drips: wet paint that builds up in one place darkens, then runs slowly down the surface. Paint dries in seconds. Heavier coverage runs longer; the marker and the roller can trigger runs too.
 - Crosshair: as wide as the line would land, with the set opacity on an arc; it fades where paint won't reach.
+- Plume: every cap has its own soft plume at the nozzle, from a thin jet to a wide cloud. It follows the opacity, and other players see it too.
 - Streamline (Settings → General) smooths lines: the brush trails the aim a little. Painting has its own mouse sensitivity and field of view.
+
+## Caps
+
+Q and E switch between them by default. Every player starts with BANANA; the others are found on the roof.
+
+- NEEDLE: ultra-fine lines for sharp details and highlights.
+- SKINNY: clean tags and crisp outlines.
+- BANANA: a versatile all-rounder for everyday painting.
+- BLUE DOT: soft edges for smooth blends and fades.
+- NY FAT: wide lines for throw-ups and quick fills.
+- ASTRO FAT: massive coverage for big fills and backgrounds.
+
+## Tools
+
+All found on the roof. Q and E change the width of the first three by default.
+
 - Marker: a square nib for crisp lines and letters, up to 10 cm wide.
-- Roller: solid bands of paint on a short pole that reaches 5 m, from 20 to 80 cm wide; it rolls up and down, and its paint runs easily.
-- Sponge: scrapes off any paint; one pass fades it, scrubbing cleans it.
-- Stepladder: stands on the floor and reaches high walls; each player has one, and in a session others can climb it.
-- The marker, the roller, the sponge and the stepladder are all found on the roof.
-- Sound: the can's hiss gets louder with more opacity, closer to the wall and with the hand moving, and every cap has its own loudness and tone.
+- Roller: solid bands of paint on a short pole that reaches 5 m, from 20 to 80 cm wide. It rolls up and down, and its paint runs easily.
+- Sponge: scrapes off any paint, from 4 to 60 cm wide. One pass fades it, scrubbing cleans it, and holding Crouch scrubs the floor.
+- Stepladder: stands on the floor and reaches high walls. Each player has one, and in a session others can climb it.
+
+## Sound
+
+- Real recordings of the city at night from a rooftop, of rain and of thunder, along with footsteps, air conditioners and the can's hiss. In a room the city gets muffled and the rain changes to rain on a tin roof.
+- The can's hiss gets louder with more opacity, closer to the wall and with the hand moving, and every cap has its own loudness and tone.
 
 ## Links
 
