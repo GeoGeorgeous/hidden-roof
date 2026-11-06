@@ -611,7 +611,7 @@ html:not(.game) .about .hero {
 /* Two columns of short points, where the column is wide enough. */
 .about ul.cols {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 16px 32px;
 }
 .about li {
