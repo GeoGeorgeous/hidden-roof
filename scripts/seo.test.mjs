@@ -81,4 +81,9 @@ assert.ok(tools?.length, 'src/inventory/tool.ts: no SLOTS');
 for (const id of tools) assert.ok(about.includes(`<img src="/about/pickups/${id}.webp" width="200" height="200"`), `index.html: the ${id}`);
 for (const id of [...caps.map((c) => c[1]), ...tools]) assert.ok(read(`public/about/pickups/${id}.webp`).length, `public/about/pickups/${id}.webp`);
 
-console.log('seo: ok (descriptions, url, structured data, the page about the game, the definition, project links, caps and tools agree)');
+// What inspired the game: the same names and links in the README, the credits, the page and llms.txt.
+for (const text of ['Bombing!!: A Graffiti Sandbox and Bombing!! 2', 'Getting Up: Contents Under Pressure', 'Beyond the Lines', 'store.steampowered.com/app/1527520/', 'store.steampowered.com/app/260190/', 'seigensha.com/books/978-4-86152-902-3/']) {
+  for (const [file, body] of [['README.md', read('README.md')], ['src/credits-page.ts', read('src/credits-page.ts')], ['index.html', about], ['public/llms.txt', read('public/llms.txt')]]) assert.ok(body.includes(text), `${file}: ${text}`);
+}
+
+console.log('seo: ok (descriptions, url, structured data, the page about the game, the definition, project links, caps, tools and inspirations agree)');

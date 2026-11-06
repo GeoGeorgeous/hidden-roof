@@ -60,4 +60,6 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
   the live sitemap's pages once after each deploy (`--dry` shows the ping).
 - **Crawlers:** `robots.txt` allows every bot, AI ones too. Caddy gives them 200 and a real 404 for unknown paths
   (checked 2026-11-02 for Googlebot, bingbot, GPTBot, ClaudeBot and PerplexityBot).
+- **What inspired the game:** the same names and links in `README.md`, the credits (`src/credits-page.ts`), the FAQ and
+  `llms.txt` (`scripts/seo.test.mjs`).
 - Outside the repo, the owner's: Search Console and Bing Webmaster Tools, itch.io, Reddit and the other outside presence.
