@@ -200,7 +200,9 @@ for (const hz of RATES) {
   // As the eye sees them: on the wall they're further apart the more it's seen at an angle, as the dabs are longer.
   const steps = flick.dabs.slice(1).map((d, i) => (d.x - flick.dabs[i].x) / Math.hypot(d.x, 1));
   assert.ok(Math.max(...steps) <= dabSpacing(CAPS.skinny, 3.1) * 1.01, `${hz} Hz: dabs a spacing apart, the widest ${Math.max(...steps)}`);
-  assert.ok(flick.dabs.at(-1).x > 2.5, `${hz} Hz: the line reaches the aim, ${flick.dabs.at(-1).x}`);
+  // Behind the aim's last spot by what the streamline trails at this speed, and no more.
+  const aim = ((Math.round(0.25 * hz) - 1) / hz) * 12;
+  assert.ok(flick.dabs.at(-1).x > aim - 12 * BRUSH.streamline - 0.1, `${hz} Hz: the line reaches the aim, ${flick.dabs.at(-1).x}`);
 
   // The hand speed is the hand's: a true 1 m/s with the spray cap, 2.4 m from the wall.
   const speeds = play(rig(2.4), hz, 1, 2.4, 'spray', (t) => t);
@@ -238,7 +240,7 @@ for (const [name, cap, depth, x, seconds] of strokes) {
 }
 
 // A fast line's start: it holds about as much paint at any frame rate, though the aim gets going behind the streamline.
-for (const [cap, speed, length, share] of [['fat', 8, 0.4, 0.04], ['spray', 12, 0.5, 0.05], ['skinny', 8, 0.5, 0.08], ['needle', 6, 0.3, 0.13]]) {
+for (const [cap, speed, length, share] of [['fat', 8, 0.4, 0.05], ['spray', 12, 0.5, 0.06], ['skinny', 8, 0.5, 0.08], ['needle', 6, 0.3, 0.13]]) {
   const start = (hz) => {
     const r = rig(2);
     play(r, hz, length / speed + 0.3, 2, cap, (t) => t * speed);
@@ -260,7 +262,7 @@ for (const hz of RATES) {
   const r = rig(1);
   play(r, hz, 0.1, 1, 'standard', () => 0);
   r.dabs.length = 0;
-  play(r, hz, 0.02, 1, 'standard', () => 0.5);
+  play(r, hz, BRUSH.streamline, 1, 'standard', () => 0.5);
   const first = r.dabs.at(-1).x;
   near(first, 0.5 * (1 - Math.exp(-1)), 0.3, `${hz} Hz: one time constant after a jump of the aim`);
   play(r, hz, 0.3, 1, 'standard', () => 0.5);

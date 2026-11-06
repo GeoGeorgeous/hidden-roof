@@ -1103,7 +1103,7 @@ export const BRUSH = {
   /** A spot this much further on (m) in a frame starts the stroke anew. */
   maxJump: 3,
   /** How long the brush trails the aim (s), taking the mouse's jitter out of lines. 0 = none. */
-  streamline: 0.02,
+  streamline: 0.03,
   /** Held still, dabs per second, each with `buildAmount` of a moving dab's paint: the spot darkens and then runs. */
   buildRate: 60,
   buildAmount: 0.5,
