@@ -1707,6 +1707,8 @@ export const AUDIO = {
   /** A recording's request is tried this many times, this far apart (s). */
   recordingTries: 3,
   recordingRetry: 5,
+  /** The sound's sample rate (Hz), whatever the device's: recordings stay decoded at it, so an output set to 192 kHz would hold four times the memory. Opus is 48 kHz: nothing is lost. */
+  sampleRate: 48000,
   footstepGain: 0.25,
   /** Rain (a recording) at full density; scales with ATMOS.rainDensity, silent without rain. */
   rainGain: 0.168,

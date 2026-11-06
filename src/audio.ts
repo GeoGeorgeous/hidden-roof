@@ -37,7 +37,7 @@ export class Audio {
       void this.ctx.resume();
       return;
     }
-    const ctx = new AudioContext();
+    const ctx = new AudioContext({ sampleRate: AUDIO.sampleRate });
     this.ctx = ctx;
     this.master = ctx.createGain();
     this.master.gain.value = AUDIO.masterGain;

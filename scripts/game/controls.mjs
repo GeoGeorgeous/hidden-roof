@@ -172,6 +172,14 @@ await check('sound: the city recording arrives after the first gesture, the rain
   return r.length === 7 && r.every(Boolean) ? null : `recordings: ${r}`;
 });
 
+await check('sound: it runs at its own sample rate, not the device\'s', async () => {
+  const r = await page.evaluate(() => {
+    const { audio, config } = window.game;
+    return { rate: audio.ctx.sampleRate, wanted: config.AUDIO.sampleRate };
+  });
+  return r.rate === r.wanted ? null : JSON.stringify(r);
+});
+
 await check('rooms: both tools start off; a mark reaches up to what starts over a head, and U takes off only the mark you are on', async () => {
   const setup = await page.evaluate(() => {
     const g = window.game;
