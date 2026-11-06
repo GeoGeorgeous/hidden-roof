@@ -138,7 +138,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin/).
 The API and why it is so: docs/admin-api.md.
 
-
 ## Web and promotion
 
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.7.2
@@ -213,7 +212,7 @@ Shipped since the last release; the release commit empties this list.
 50. [TASK-392]: What inspired the game reads the same, with the same links, in the README, the credits, the FAQ and `llms.txt`
 51. BUGS [BL-010]: Huge mouse jumps snapped the camera in Chrome on Windows: the browser's own recentering of the locked cursor. A filter drops those events, always on; Raw mouse in Settings → General, off by default, takes the mouse without acceleration or the system's speed
 52. [TASK-393]: Streamline starts at 30 ms, was 20
-53. [CCTV-302]: A player's state `capture` (filming with capture mode's free camera, standing still; `docs/admin-api.md`, a session's players) on the session page beside `menu` and `idle`; reaches the server with PROTOCOL 11 (1.6.2). Done in cctv PR #13 (a Capture tab and label after In menu, a neutral pill; the fake server's ana in capture), waiting for the owner's merge; a real-server check when 1.6.2 is on staging
+53. [CCTV-302]: A player's state `capture` (filming with capture mode's free camera, standing still; `docs/admin-api.md`, a session's players) on the session page beside `menu` and `idle`; reaches the server with PROTOCOL 11 (1.6.2). Done in cctv PR #13 (a Capture tab and label after In menu, a neutral pill; the fake server's ana in capture), merged; no real-server check on record
 54. [CCTV-373]: The traffic funnel shows who can play: each page load says what it came to (game, no mouse, small window, no WebGL, a file that failed, the start script cached) in a request for `/mark.txt`, counted once a visitor as `boot` in `/stats/traffic`, its days and months (`docs/admin-api.md`); the privacy page says so. The cctv page's Audience card is on it (cctv PR #17)
 
 ## Discarder
