@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 399
+The one list of what's left. Counter for new ids: next: 400
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -133,6 +133,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [IDEA-338]: The server limits a stamp's reach (radius × stretch) when it takes an op: a modified client's huge slanted stamps search ~80 times the seam cells of a round one
 3. [TASK-342]: With 1.7.0 the admin's statistics start over: no players yet, and paint counts change scale; the owner's decision. All of it goes, traffic too, a step for devops (docs/deploy.md, section 1); staging's done @1.7.0
 4. [TASK-394]: With 1.7.0's deploy to production, `www.roof.hidden.haus` redirects to the site (its HTTPS fails today) and IndexNow gets its first ping (Bing and Yandex don't know the site yet; the step needs a container, the host has no Node): steps for devops (docs/deploy.md, section 1) @1.7.0
+5. [TASK-399]: With 1.7.0's deploy to production, the cctv page is built again from its `main` (PRs #14, #15 and #17 are for 1.7.0), a step for devops (docs/deploy.md, section 1) @1.7.0
 
 ## CCTV
 
