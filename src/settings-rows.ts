@@ -50,6 +50,7 @@ export function gameplayRows(hints: Hints): SettingRow[] {
       set: (v) => (PLAYER.paintSensitivity = v),
       format: (v) => `${v.toFixed(2)}x`,
     },
+    toggle('Raw mouse', () => PLAYER.rawMouse, (on) => (PLAYER.rawMouse = on), undefined, 'Turns off mouse acceleration and the system pointer speed. Try it if the view ever jumps sharply.'),
     {
       kind: 'range',
       label: 'Streamline',

@@ -1,5 +1,5 @@
 import { HOLD } from '../config';
-import { live, r, t, when, gray, v3, type Hooks, type Item, type Section } from './tuning';
+import { live, r, t, gray, v3, type Hooks, type Item, type Section } from './tuning';
 import { POSE_COUNT } from '../dev/avatar-preview';
 
 // F3 panel contents for playing (tuning.ts has the helpers).
@@ -146,7 +146,6 @@ export function playSections(h: Hooks): Section[] {
         r('step smoothing', ['PLAYER', 'stepSmoothing'], 2, 60, 0.5),
         r('mouse sensitivity', ['PLAYER', 'mouseSensitivity'], 0.0005, 0.006, 0.0001),
         r('mouse while painting', ['PLAYER', 'paintSensitivity'], 0.25, 1, 0.05),
-        ...when('resume', [t('raw mouse', ['PLAYER', 'rawMouse'])]),
         r('fov', ['RENDER', 'fov'], 50, 110, 1),
         r('sprint: fov boost', ['RENDER', 'sprintFovBoost'], 0, 20, 0.5),
         r('painting: fov cut', ['RENDER', 'paintFovCut'], 0, 30, 1),

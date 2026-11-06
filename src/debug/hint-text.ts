@@ -56,7 +56,6 @@ export const HINTS: Record<string, string> = {
   'PLAYER.mouseSensitivity': 'Radians of turn per pixel of mouse movement.',
   'RENDER.paintFovCut': 'Degrees of field of view taken off while a tool paints, eased like the sprint\'s. 0 = none. The player sets it in Settings → General.',
   'PLAYER.paintSensitivity': 'Mouse sensitivity is scaled by this while a tool paints. Lower = steadier lines. The player sets it in Settings → General.',
-  'PLAYER.rawMouse': 'Takes the mouse without the OS pointer acceleration (Chrome: unadjustedMovement). On = the mouse feels different. For testing the mouse spikes: profile a long session with it on. Falls back to the normal mouse where the browser refuses.',
   'RENDER.fov': 'Vertical field of view (degrees).',
   'RENDER.sprintFovBoost': 'Extra field of view while sprinting (degrees).',
   'RENDER.sprintFovEase': 'How fast the sprint FOV change eases in and out.',

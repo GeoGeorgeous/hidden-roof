@@ -2,6 +2,7 @@ import { layoutName } from './key-name';
 import { BINDINGS, PLAYER, RENDER, WHEEL } from './config';
 import { enterGameFullscreen } from './fullscreen';
 import { currentOs } from './gpu-name';
+import { MouseSpikes } from './mouse-spike';
 
 // Keyboard + mouse state with pointer lock. Edge-triggered presses are consumed per frame.
 // Play asks by action (BINDINGS); build mode and the dev keys ask by raw code.
@@ -96,6 +97,8 @@ export class Input {
   private isLocked = false;
   /** The last lock asked for the mouse without acceleration (PLAYER.rawMouse), and wasn't refused it. */
   rawLocked = false;
+  /** Drops the browser's jumps from the mouse's movement. */
+  readonly spikes = new MouseSpikes();
   /** When the player last pressed, clicked, scrolled or moved the mouse in play (performance.now() s): idle since. */
   lastActive = performance.now() / 1000;
   onLockChange: (locked: boolean) => void = () => {};
@@ -119,6 +122,7 @@ export class Input {
     window.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
       this.active();
+      if (!this.rawLocked && this.spikes.caught(e.movementX, e.movementY, e.timeStamp, innerWidth, innerHeight)) return;
       this.mouseDX += e.movementX;
       this.mouseDY += e.movementY;
     });
