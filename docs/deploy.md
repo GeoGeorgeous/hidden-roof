@@ -10,6 +10,7 @@ Context for the agent that deploys and runs the game on the VPS: read it before 
 - **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`, cloned over HTTPS (the host holds no GitHub credentials). Deploy releases only: a `vX.Y.Z` tag, never a branch tip. Branches and releases: `AGENTS.md`.
 - **Version:** the pause menu shows the build's `git describe` (`src/version.ts`); built without git (the image has none), `package.json`'s version, which matches the tag on a release commit.
 - **Waiting for devops:** with the first deploy of `v1.7.0`'s code to staging, and again with its deploy to production, once on each, the statistics start over (the owner's decision, TASK-342). Stop that game server, then in its `DATA_DIR` empty `stats/` and `events/` and delete `bans.json`, which lifts every ban, and empty its `LOG_DIR`. Keep `traffic/`, `sessions.json` and the saves; `roof-traffic` needs no stop. Start the new version: the server makes new `salt.json` and `bans.json` itself. Report it done to the owner.
+  With `v1.7.0`'s deploy to production (TASK-394): add the `www.roof.hidden.haus` redirect (section 5), and run IndexNow (section 7), for which no ping is on record yet. Report its `IndexNow:` line and the redirect's check to the owner.
   What the repo needs from the host goes here when its repo part lands, and leaves once devops reports it done.
 
 ## 2. The game (stable)
@@ -68,8 +69,13 @@ roof.hidden.haus {
 		}
 	}
 }
+
+www.roof.hidden.haus {
+	redir https://roof.hidden.haus{uri} permanent
+}
 ```
 
+- `www.roof.hidden.haus` only redirects, so Search never sees a second address that fails. Its DNS already points here, and Caddy gets its certificate on the reload.
 - `encode` stays for anything without a precompressed file. `stream_close_delay` keeps live games through a Caddy reload.
 - The CSP is `csp` in `vite.config.ts`, tested by `npm run test:csp`: change both together. Its `script-src` hash is the build's `csp-hash.txt` (one line, `'sha256-…'`), shipped by rsync with `index.html` and read by Caddy per request (Caddy 2.11+). Missing, empty or stale, it only blocks that script and the game loads a round trip later; missing, Caddy also logs an error on every request.
 
@@ -171,7 +177,8 @@ log {
 - `curl -I https://roof.hidden.haus/` → 200, `cache-control: no-cache`.
 - `curl -I` on a file under `/assets/` → `immutable`; with `-H 'Accept-Encoding: br'` → `content-encoding: br`.
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`; with `-A Googlebot` (or GPTBot) on `/` → 200, not 403 or 429.
-- `node scripts/indexnow.mjs` → `IndexNow: 200` (or 202): the sitemap's pages to Bing and the other IndexNow engines.
+- `node scripts/indexnow.mjs` → `IndexNow: 200` (or 202): the sitemap's pages to Bing and the other IndexNow engines. The host has no Node, so run it in a container, from the clone at the deployed tag: `docker run --rm -v <apps>/roof/repo:/repo:ro -w /repo node:24-slim node scripts/indexnow.mjs`. It needs no `node_modules`.
+- `curl -I https://www.roof.hidden.haus/nope` → 301 to `https://roof.hidden.haus/nope`.
 - `curl -sI https://roof.hidden.haus/ | grep -o "script-src[^;]*"` shows the hash in `<apps>/roof/www/csp-hash.txt`; the browser console shows no CSP error.
 - `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the `PROTOCOL` of the game deployed.
 - `docker compose ps roof` is healthy; in two browser windows, HOST shows a code that JOIN accepts; a new file appears in `LOG_DIR`.
