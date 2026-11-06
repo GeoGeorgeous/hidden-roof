@@ -62,8 +62,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Input
 
-1. BUGS [!BL-010]: Huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.7.0
-
 ## Performance
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
@@ -215,6 +213,7 @@ Shipped since the last release; the release commit empties this list.
 48. [TASK-390]: The page about the game: Tools says how the marker, roller, sponge and stepladder work, each with its pickup for a picture
 49. [TASK-391]: `llms.txt` has the page's facts: playing, modes, saving, caps, tools, sound, release and license, under their own titles
 50. [TASK-392]: What inspired the game reads the same, with the same links, in the README, the credits, the FAQ and `llms.txt`
+51. BUGS [BL-010]: Huge mouse jumps snapped the camera in Chrome on Windows: the browser's own recentering of the locked cursor. A filter drops those events, always on; Raw mouse in Settings → General, off by default, takes the mouse without acceleration or the system's speed
 
 ## Discarder
 

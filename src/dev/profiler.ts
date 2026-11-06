@@ -28,7 +28,7 @@ interface ProfilerWorld {
   environment: Pick<Environment, 'lighting' | 'lightFx'>;
   baker: LightBaker;
   player: Player;
-  input: Pick<Input, 'rawLocked'>;
+  input: Pick<Input, 'rawLocked' | 'spikes'>;
   gpuTimer: GpuTimer;
   city(): THREE.Object3D;
   applyPixelScale(): void;
@@ -71,6 +71,8 @@ interface Second {
 export class Profiler {
   private probe: Probe;
   private spikes: SpikeCatcher;
+  /** Mouse jumps the input had dropped when this recording started. */
+  private mouseDroppedBefore = 0;
   /** The last full second's frame time (ms), what a slow frame is measured against. */
   private typicalMs = 0;
   private on = false;
@@ -113,6 +115,7 @@ export class Profiler {
     this.longTasks = 0;
     this.typicalMs = 0;
     this.spikes.start(this.started);
+    this.mouseDroppedBefore = this.w.input.spikes.dropped;
     this.context = { ...this.environment(), at_start: this.census() };
     try {
       this.observer = new PerformanceObserver((l) => (this.longTasks += l.getEntries().length));
@@ -318,7 +321,7 @@ export class Profiler {
         triangles: Math.round(avg((s) => s.triangles)),
       },
       verdict: verdict(avg((s) => s.frameMs), avg((s) => s.cpuMs), this.w.gpuTimer.supported ? avg((s) => PASSES.reduce((a, p) => a + (s.gpu?.[p] ?? 0), 0)) : null),
-      spikes: { kept: this.spikes.spikes.length, notKept: this.spikes.dropped, byReason: countBy(this.spikes.spikes.flatMap((s) => s.reasons.map((r) => r.why.split(':')[0]))) },
+      spikes: { kept: this.spikes.spikes.length, notKept: this.spikes.dropped, mouseDropped: this.w.input.spikes.dropped - this.mouseDroppedBefore, byReason: countBy(this.spikes.spikes.flatMap((s) => s.reasons.map((r) => r.why.split(':')[0]))) },
       slowestSeconds: [...playing].sort((a, b) => a.fps - b.fps).slice(0, 5).map(({ t, fps, cpuMs, calls, pos, yaw }) => ({ t, fps, cpuMs, calls, pos, yaw })),
     };
     return { summary, context: { ...(this.context as ReturnType<Profiler['environment']>), at_end: this.census() }, probes: this.probes, spikes: this.spikes.spikes, browserEvents: this.spikes.events, worstFrames: this.worst, seconds: this.seconds };

@@ -275,7 +275,7 @@ await check('settings: General is in groups, and the mouse turns slower only whi
     input.setLocked(false);
     return { page, free, painting };
   });
-  const want = ['# painting', 'Sensitivity', 'Sensitivity while painting', 'Streamline', '# view', 'Field of view', 'Field of view: running', 'Field of view: painting', '# help', 'Hints', 'Show hints again', '# left hand', 'Show left hand'];
+  const want = ['# painting', 'Sensitivity', 'Sensitivity while painting', 'Raw mouse', 'Streamline', '# view', 'Field of view', 'Field of view: running', 'Field of view: painting', '# help', 'Hints', 'Show hints again', '# left hand', 'Show left hand'];
   const close = (a, b) => Math.abs(a - b) < 1e-6;
   return JSON.stringify(r.page) === JSON.stringify(want) && close(r.free, 1) && close(r.painting, 0.5) ? null : JSON.stringify(r);
 });

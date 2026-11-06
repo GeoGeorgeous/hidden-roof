@@ -361,13 +361,13 @@ function nearest(list: number[], v: number) {
 }
 
 /** What Reset all takes back on General and on Graphics (with the choices kept apart, Settings.graphicsReset); Audio's are its sliders. */
-const GENERAL_FIELDS = ['PLAYER.mouseSensitivity', 'PLAYER.paintSensitivity', 'BRUSH.streamline', 'RENDER.fov', 'RENDER.sprintFovBoost', 'RENDER.paintFovCut', 'TUTORIAL.enabled', 'WALL_HAND.enabled'];
+const GENERAL_FIELDS = ['PLAYER.mouseSensitivity', 'PLAYER.paintSensitivity', 'PLAYER.rawMouse', 'BRUSH.streamline', 'RENDER.fov', 'RENDER.sprintFovBoost', 'RENDER.paintFovCut', 'TUTORIAL.enabled', 'WALL_HAND.enabled'];
 const GRAPHICS_FIELDS = ['RENDER.fullscreen', 'RENDER.propMotion', 'ATMOS.rain', 'SMOKE.enabled', 'HUD.perf'];
 const SOUND_FIELDS = SOUNDS.map(([, field]) => `AUDIO.${field}`);
 
 /** The gameplay, sound and on/off settings, saved as overrides (settings-store.ts). */
 const REMEMBERED: Remembered[] = [
-  ...(['mouseSensitivity', 'paintSensitivity', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
+  ...(['mouseSensitivity', 'paintSensitivity', 'rawMouse', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
   ...(['fov', 'sprintFovBoost', 'paintFovCut', 'fullscreen', 'propMotion'] as const).map((field) => ({ name: `RENDER.${field}`, obj: RENDER, field })),
   { name: 'ATMOS.rain', obj: NIGHT, field: 'rain' },
   { name: 'SMOKE.enabled', obj: SMOKE, field: 'enabled' },

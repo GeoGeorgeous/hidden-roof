@@ -606,6 +606,12 @@ export const HOTBAR = { slots: 5 };
 export const WHEEL = { notchPx: 100, linePx: 100 / 3 };
 
 /**
+ * A mouse event dropped as the browser's jump, not the hand's (src/mouse-spike.ts): it covers `borderShare` of the window's
+ * width or height (less `slackPx`) and is over `ratio` times the largest recent event, which fades by half each `halfLifeMs`.
+ */
+export const MOUSE_SPIKE = { borderShare: 0.35, slackPx: 3, ratio: 3, halfLifeMs: 60 };
+
+/**
  * Play actions and what is bound to each (src/input.ts asks by action): key codes are e.code, the key's place
  * whatever the layout; Mouse0 and Mouse2 the left and right buttons, WheelUp and WheelDown a wheel step.
  * Esc and Enter belong to the menus (src/play-state.ts) and are never bound. Build mode, F3 and the dev keys read raw codes.
@@ -1177,7 +1183,7 @@ export const PLAYER = {
   mouseSensitivity: 0.0022,
   /** Mouse sensitivity is scaled by this while a tool paints: slower for steadier lines. */
   paintSensitivity: 1,
-  /** Take the mouse without the OS's pointer acceleration (the pointer lock's `unadjustedMovement`), at the next lock. For finding what makes rare mouse spikes; F3 only. */
+  /** Take the mouse without the OS's pointer acceleration and speed (the pointer lock's `unadjustedMovement`), at the next lock. The player sets it in Settings → General. */
   rawMouse: false,
   /** Falling below this height respawns the player. */
   killY: -25,
