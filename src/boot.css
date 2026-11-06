@@ -461,14 +461,10 @@ html:not(.game) .about .hero {
 .about .facts,
 .about .tools {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 24px 32px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
   font-size: 14px;
   line-height: 1.5;
-}
-.about .facts {
-  grid-template-columns: repeat(3, 1fr);
-  gap: 28px 32px;
 }
 /* A fact: its label, the fact in short, a line under it. */
 .about .facts dd {
@@ -483,27 +479,21 @@ html:not(.game) .about .hero {
   line-height: 1.25;
   color: var(--paper);
 }
-.about .tools {
-  grid-template-columns: repeat(5, 1fr);
-  gap: 24px;
-}
 /* The caps: each picture over its name. */
-.about .tools.caps {
-  grid-template-columns: repeat(3, 1fr);
-}
 .about .tools.caps dt {
   flex-direction: column;
   align-items: flex-start;
+  gap: 8px;
   letter-spacing: 0.04em;
 }
 .about .caps img {
-  width: 100%;
+  max-width: 100%;
   height: auto;
 }
 .about :is(.facts, .tools) > div {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 .about .facts dt {
   font-size: 11px;
@@ -526,7 +516,7 @@ html:not(.game) .about .hero {
 .about section {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   margin-top: 56px;
   padding-top: 40px;
   border-top: 1px solid var(--hair);
@@ -580,7 +570,16 @@ html:not(.game) .about .hero {
   max-width: 640px;
   font-size: 15px;
 }
-.about :is(.prose, #painting) h3 {
+/* Painting's parts: 48 px over a title, 8 under it, 24 down to a part's grid. */
+.about #painting h3 {
+  margin: 32px 0 -8px;
+  font: 400 26px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+}
+.about #painting :is(dl, ul) {
+  margin-top: 8px;
+}
+.about .prose h3 {
   margin: 18px 0 -6px;
   font: 400 26px / 1.1 var(--display);
   letter-spacing: 0.02em;
@@ -589,7 +588,7 @@ html:not(.game) .about .hero {
 .about ul.cols {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px 40px;
+  gap: 16px 32px;
 }
 .about li {
   position: relative;
@@ -788,8 +787,9 @@ html:not(.game) .about .hero {
   .about .facts {
     grid-template-columns: repeat(2, 1fr);
   }
-  .about :is(.tools, .tools.caps) {
+  .about .tools {
     grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
   }
   .about .faq-group {
     grid-template-columns: 1fr;

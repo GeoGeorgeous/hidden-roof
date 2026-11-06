@@ -4,18 +4,26 @@
 import fs from 'node:fs';
 import { openTestBrowser } from './test-browser.mjs';
 
-const WIDTH = 320;
-const HEIGHT = 220;
-const SCALE = 1.5;
+// Cropped to the pickup and its longest tag, so a card's picture lines up with the text under it.
+const WIDTH = 240;
+const HEIGHT = 160;
+const SCALE = 2;
+/** Picture px per meter at the pickup, and the camera's way from it (m), to the side and up: where the crop falls. */
+const PER_METER = 144;
+const AWAY = 2.1;
+const SIDE = 0.166;
+const UP = 0.015;
 /** The cap against its pickup's size: this small on a page, it has to read. */
 const BIGGER = 1.8;
+/** The light ring, a little see-through. */
+const RING_OPACITY = 0.7;
 const test = await openTestBrowser(undefined, { level: null });
 const context = await test.browser.newContext({ viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: SCALE });
 const page = await context.newPage();
 await page.goto(test.url.split('?')[0]);
 // The page's own modules, from the Vite server.
 const modules = ['/node_modules/.vite/deps/three.js', '/src/pickups/visuals.ts', '/src/pickups/labels.ts', '/src/config.ts', '/src/style.css'];
-const caps = await page.evaluate(async ({ modules, width, height, bigger }) => {
+const caps = await page.evaluate(async ({ modules, width, height, bigger, ringOpacity, view }) => {
   const [THREE, { itemModel, halo }, { PickupLabels }, { PICKUP, INK, CAP_ORDER }] = await Promise.all(modules.map((m) => import(m)));
   document.documentElement.classList.add('game');
   document.body.replaceChildren();
@@ -26,9 +34,10 @@ const caps = await page.evaluate(async ({ modules, width, height, bigger }) => {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(devicePixelRatio);
   renderer.setSize(width, height, false);
-  const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 10);
-  camera.position.set(0, PICKUP.hover + 0.05, 2.1);
-  camera.lookAt(0, PICKUP.hover + 0.05, 0);
+  const fov = (2 * Math.atan(height / (2 * view.away * view.perMeter)) * 180) / Math.PI;
+  const camera = new THREE.PerspectiveCamera(fov, width / height, 0.1, 10);
+  camera.position.set(view.side, PICKUP.hover + view.up, view.away);
+  camera.lookAt(view.side, PICKUP.hover + view.up, 0);
   camera.updateMatrixWorld();
   const labels = new PickupLabels(camera, { near: () => {} });
   let next = 1;
@@ -45,6 +54,7 @@ const caps = await page.evaluate(async ({ modules, width, height, bigger }) => {
     ring.position.y = PICKUP.hover;
     ring.scale.setScalar(PICKUP.ring.size);
     ring.material.color.set(INK.paper);
+    ring.material.opacity = ringOpacity;
     // The cap over its ring, whole.
     const cap = new THREE.Scene();
     cap.add(pose);
@@ -61,7 +71,7 @@ const caps = await page.evaluate(async ({ modules, width, height, bigger }) => {
   };
   window.forget = (n) => labels.remove(n);
   return CAP_ORDER;
-}, { modules, width: WIDTH, height: HEIGHT, bigger: BIGGER });
+}, { modules, width: WIDTH, height: HEIGHT, bigger: BIGGER, ringOpacity: RING_OPACITY, view: { perMeter: PER_METER, away: AWAY, side: SIDE, up: UP } });
 
 fs.mkdirSync('public/about/caps', { recursive: true });
 const encoder = await context.newPage();
