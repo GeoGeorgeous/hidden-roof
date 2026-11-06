@@ -1709,6 +1709,8 @@ export const AUDIO = {
   recordingRetry: 5,
   /** The sound's sample rate (Hz), whatever the device's: recordings stay decoded at it, so an output set to 192 kHz would hold four times the memory. Opus is 48 kHz: nothing is lost. */
   sampleRate: 48000,
+  /** The other recordings wait this long at most for the city (s), so on a slow link it comes first and a stuck request holds nothing back. */
+  cityFirst: 20,
   footstepGain: 0.25,
   /** Rain (a recording) at full density; scales with ATMOS.rainDensity, silent without rain. */
   rainGain: 0.168,

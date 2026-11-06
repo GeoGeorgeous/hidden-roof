@@ -157,24 +157,49 @@ await check('updates: the releases newest first, the newest marked Latest; each 
   return r.vers[0].endsWith('Latest') && r.vers.at(-1) === '1.0.0' && r.vers.filter((v) => v.endsWith('Latest')).length === 1 && !r.missing.length && r.terms.join() === 'spray can,marker,roller,sponge,stepladder' ? null : JSON.stringify(r);
 });
 
-await check('sound: the city recording arrives after the first gesture, the rains and thunder with the first rain and in a room, and all load', async () => {
-  const r = await page.evaluate(async () => {
+await check('sound: the city recording arrives alone after the first gesture, then the rains and thunder with the first rain and in a room, and all load', async () => {
+  // A page of its own: the sound of this one started with the first check that played.
+  const fresh = await openPage();
+  const r = await fresh.evaluate(async () => {
     const { audio, config } = window.game;
-    const rain = config.ATMOS.rain;
     config.ATMOS.rain = true;
     audio.start();
     audio.setIndoors(true);
     audio.update(false);
-    audio.setIndoors(false);
-    config.ATMOS.rain = rain;
-    return Promise.all(audio.recordings.values());
+    const alone = audio.recordings.size;
+    await Promise.all(audio.recordings.values());
+    await new Promise((done) => setTimeout(done));
+    // The game's frames have said where the player is since.
+    audio.setIndoors(true);
+    audio.update(false);
+    return { alone, loaded: await Promise.all(audio.recordings.values()) };
   });
-  return r.length === 7 && r.every(Boolean) ? null : `recordings: ${r}`;
+  await fresh.close();
+  return r.alone === 1 && r.loaded.length === 7 && r.loaded.every(Boolean) ? null : JSON.stringify(r);
+});
+
+await check('sound: a city recording that never comes holds the rain back only for a while', async () => {
+  const fresh = await openPage();
+  await fresh.route('**/city-night*', () => {});
+  const r = await fresh.evaluate(async () => {
+    const g = window.game;
+    g.config.AUDIO.cityFirst = 0.05;
+    g.config.ATMOS.rain = true;
+    g.audio.start();
+    g.audio.update(false);
+    const held = g.audio.recordings.size;
+    await new Promise((done) => setTimeout(done, 200));
+    g.audio.update(false);
+    return { held, then: g.audio.recordings.size };
+  });
+  await fresh.close();
+  return r.held === 1 && r.then === 6 ? null : JSON.stringify(r);
 });
 
 await check('sound: it runs at its own sample rate, not the device\'s', async () => {
   const r = await page.evaluate(() => {
     const { audio, config } = window.game;
+    audio.start();
     return { rate: audio.ctx.sampleRate, wanted: config.AUDIO.sampleRate };
   });
   return r.rate === r.wanted ? null : JSON.stringify(r);
